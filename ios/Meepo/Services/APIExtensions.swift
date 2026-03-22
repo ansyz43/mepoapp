@@ -14,12 +14,14 @@ extension APIClient {
         try await request("POST", path: "/api/channel/messenger/connect", body: req)
     }
     
-    func updateChannel(id: Int, _ req: ChannelUpdateRequest) async throws -> ChannelResponse {
-        try await request("PUT", path: "/api/channel/\(id)", body: req)
+    func updateChannel(platform: String, _ req: ChannelUpdateRequest) async throws -> ChannelResponse {
+        let slug = platform == "facebook_messenger" ? "messenger" : platform
+        return try await request("PUT", path: "/api/channel/\(slug)", body: req)
     }
     
-    func deleteChannel(id: Int) async throws {
-        let _: MessageOnly = try await request("DELETE", path: "/api/channel/\(id)")
+    func deleteChannel(platform: String) async throws {
+        let slug = platform == "facebook_messenger" ? "messenger" : platform
+        let _: MessageOnly = try await request("DELETE", path: "/api/channel/\(slug)")
     }
     
     func uploadAvatar(channelId: Int, imageData: Data) async throws -> ChannelResponse {
@@ -34,23 +36,23 @@ extension APIClient {
 
 // MARK: - Contacts API
 extension APIClient {
-    func getContacts(platform: String? = nil, search: String? = nil, skip: Int = 0, limit: Int = 50) async throws -> ContactListResponse {
+    func getContacts(platform: String? = nil, search: String? = nil, page: Int = 1, perPage: Int = 50) async throws -> ContactListResponse {
         var params: [String] = []
         if let p = platform { params.append("platform=\(p)") }
         if let s = search, !s.isEmpty { params.append("search=\(s)") }
-        params.append("skip=\(skip)")
-        params.append("limit=\(limit)")
+        params.append("page=\(page)")
+        params.append("per_page=\(perPage)")
         let query = params.isEmpty ? "" : "?" + params.joined(separator: "&")
-        return try await request("GET", path: "/api/conversations/contacts\(query)")
+        return try await request("GET", path: "/api/contacts\(query)")
     }
     
-    func exportContacts(format: String = "csv") async throws -> Data {
-        // This returns file data, handle separately
-        guard let url = URL(string: "https://meepo.su/api/conversations/contacts/export?format=\(format)") else {
+    func exportContacts() async throws -> Data {
+        guard let url = URL(string: baseURL + "/api/contacts/export") else {
             throw APIError.invalidURL
         }
         var req = URLRequest(url: url)
-        if let token = KeychainHelper.load(key: "access_token") {
+        req.httpMethod = "GET"
+        if let token = accessToken {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         let (data, _) = try await URLSession.shared.data(for: req)
@@ -77,28 +79,26 @@ extension APIClient {
 
 // MARK: - Broadcast API
 extension APIClient {
-    func getBroadcasts(skip: Int = 0, limit: Int = 20) async throws -> [BroadcastResponse] {
-        try await request("GET", path: "/api/broadcast?skip=\(skip)&limit=\(limit)")
+    func getBroadcasts() async throws -> [BroadcastResponse] {
+        try await request("GET", path: "/api/channel/broadcasts")
     }
     
-    func createBroadcast(channelId: Int, messageText: String, imageData: Data? = nil) async throws -> BroadcastResponse {
+    func createBroadcast(messageText: String, imageData: Data? = nil) async throws -> BroadcastResponse {
         if let imageData = imageData {
             return try await upload(
-                path: "/api/broadcast",
+                path: "/api/channel/broadcast",
                 fileData: imageData,
                 fileName: "broadcast.jpg",
                 mimeType: "image/jpeg",
                 additionalFields: [
-                    "channel_id": "\(channelId)",
                     "message_text": messageText
                 ]
             )
         } else {
             struct BroadcastCreate: Encodable {
-                let channelId: Int
                 let messageText: String
             }
-            return try await request("POST", path: "/api/broadcast", body: BroadcastCreate(channelId: channelId, messageText: messageText))
+            return try await request("POST", path: "/api/channel/broadcast", body: BroadcastCreate(messageText: messageText))
         }
     }
 }
@@ -117,42 +117,29 @@ extension APIClient {
         try await request("GET", path: "/api/referral/my-partners")
     }
     
-    func updatePartner(id: Int, sellerLink: String) async throws -> ReferralPartnerResponse {
-        try await request("PUT", path: "/api/referral/partner/\(id)", body: ReferralPartnerUpdate(sellerLink: sellerLink))
+    func updatePartner(sellerLink: String) async throws -> ReferralPartnerResponse {
+        try await request("PUT", path: "/api/referral/partner", body: ReferralPartnerUpdate(sellerLink: sellerLink))
     }
     
-    func deletePartner(id: Int) async throws {
-        let _: MessageOnly = try await request("DELETE", path: "/api/referral/partner/\(id)")
-    }
-    
-    func getPartnerSessions(partnerId: Int) async throws -> [ReferralSessionResponse] {
-        try await request("GET", path: "/api/referral/partner/\(partnerId)/sessions")
+    func getPartnerSessions() async throws -> [ReferralSessionResponse] {
+        try await request("GET", path: "/api/referral/sessions")
     }
     
     func getMyCashback() async throws -> [CashbackTransactionResponse] {
         try await request("GET", path: "/api/referral/my-cashback")
     }
     
-    func getReferralTree() async throws -> [TreeNodeResponse] {
-        try await request("GET", path: "/api/referral/tree")
-    }
+
 }
 
 // MARK: - Profile API
 extension APIClient {
     func updateProfile(_ req: ProfileUpdateRequest) async throws -> ProfileResponse {
-        try await request("PUT", path: "/api/profile/me", body: req)
+        try await request("PUT", path: "/api/profile", body: req)
     }
     
     func changePassword(_ req: ChangePasswordRequest) async throws {
-        let _: MessageOnly = try await request("POST", path: "/api/profile/change-password", body: req)
-    }
-    
-    func registerPushToken(deviceToken: String) async throws {
-        let _: MessageOnly = try await request(
-            "POST", path: "/api/profile/push-token",
-            body: PushTokenRequest(deviceToken: deviceToken, platform: "ios")
-        )
+        let _: MessageOnly = try await request("PUT", path: "/api/profile/password", body: req)
     }
 }
 
@@ -167,7 +154,7 @@ extension APIClient {
     }
     
     func toggleUserActive(userId: Int) async throws -> AdminUserResponse {
-        try await request("PUT", path: "/api/admin/users/\(userId)/toggle-active")
+        try await request("PATCH", path: "/api/admin/users/\(userId)/toggle")
     }
     
     func getAdminChannels(skip: Int = 0, limit: Int = 50) async throws -> [AdminChannelResponse] {
@@ -187,7 +174,7 @@ extension APIClient {
     
     func verifyResetCode(email: String, code: String) async throws -> TokenResponse {
         try await request(
-            "POST", path: "/api/auth/verify-reset-code",
+            "POST", path: "/api/auth/verify-code",
             body: VerifyCodeRequest(email: email, code: code),
             authenticated: false
         )

@@ -22,12 +22,12 @@ actor APIClient {
     static let shared = APIClient()
     
     #if DEBUG
-    private let baseURL = "http://localhost:8000"
+    let baseURL = "http://localhost:8000"
     #else
-    private let baseURL = "https://meepo.su"
+    let baseURL = "https://meepo.su"
     #endif
     
-    private var accessToken: String?
+    var accessToken: String?
     private var refreshToken: String?
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()

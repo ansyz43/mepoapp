@@ -155,7 +155,7 @@ struct ChannelSettingsView: View {
         
         Task {
             do {
-                let _ = try await api.updateChannel(id: channel.id, req)
+                let _ = try await api.updateChannel(platform: channel.platform, req)
                 await onSave()
                 dismiss()
             } catch {
@@ -174,7 +174,7 @@ struct ChannelSettingsView: View {
     private func deleteChannel() {
         Task {
             do {
-                try await api.deleteChannel(id: channel.id)
+                try await api.deleteChannel(platform: channel.platform)
                 await onSave()
                 dismiss()
             } catch {

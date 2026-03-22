@@ -17,7 +17,7 @@ class AuthManager: ObservableObject {
         let restored = await api.restoreTokens()
         guard restored else { return }
         do {
-            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile/me")
+            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile")
             self.profile = profile
             self.isAuthenticated = true
         } catch {
@@ -35,7 +35,7 @@ class AuthManager: ObservableObject {
                 authenticated: false
             )
             await api.setTokens(access: response.accessToken, refresh: response.refreshToken)
-            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile/me")
+            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile")
             self.profile = profile
             self.isAuthenticated = true
         } catch {
@@ -54,7 +54,7 @@ class AuthManager: ObservableObject {
                 authenticated: false
             )
             await api.setTokens(access: response.accessToken, refresh: response.refreshToken)
-            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile/me")
+            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile")
             self.profile = profile
             self.isAuthenticated = true
         } catch {
@@ -73,7 +73,7 @@ class AuthManager: ObservableObject {
                 authenticated: false
             )
             await api.setTokens(access: response.accessToken, refresh: response.refreshToken)
-            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile/me")
+            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile")
             self.profile = profile
             self.isAuthenticated = true
         } catch {
@@ -93,7 +93,7 @@ class AuthManager: ObservableObject {
     
     func refreshProfile() async {
         do {
-            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile/me")
+            let profile: ProfileResponse = try await api.request("GET", path: "/api/profile")
             self.profile = profile
         } catch { }
     }

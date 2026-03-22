@@ -230,7 +230,6 @@ struct ComposeBroadcastView: View {
         Task {
             do {
                 let _ = try await api.createBroadcast(
-                    channelId: channelId,
                     messageText: messageText.trimmingCharacters(in: .whitespaces),
                     imageData: imageData
                 )

@@ -56,7 +56,7 @@ async def update_profile(
     user = await _load_user_with_channels(user, db)
     user.name = data.name
     await db.commit()
-    await db.refresh(user)
+    user = await _load_user_with_channels(user, db)
 
     result = await db.execute(
         select(func.count(User.id)).where(User.referred_by_id == user.id)

@@ -249,7 +249,7 @@ struct PartnerDetailView: View {
         errorMessage = nil
         Task {
             do {
-                let _ = try await api.updatePartner(id: partner.id, sellerLink: sellerLink)
+                let _ = try await api.updatePartner(sellerLink: sellerLink)
                 await onUpdate()
             } catch {
                 errorMessage = error.localizedDescription
