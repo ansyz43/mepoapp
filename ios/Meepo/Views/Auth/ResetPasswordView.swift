@@ -11,80 +11,94 @@ struct ResetPasswordView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
-    
+
     private let api = APIClient.shared
-    
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Image(systemName: step == 3 ? "checkmark.shield" : "key")
-                            .font(.system(size: 48))
-                            .foregroundColor(Theme.emerald)
-                        Text(stepTitle)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        Text(stepDescription)
-                            .font(.subheadline)
-                            .foregroundColor(Theme.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 30)
-                    
-                    // Step content
-                    VStack(spacing: 16) {
-                        switch step {
-                        case 1:
-                            StyledTextField(placeholder: "Email", text: $email, keyboardType: .emailAddress)
-                            
-                        case 2:
-                            StyledTextField(placeholder: "6-digit code", text: $code, keyboardType: .numberPad)
-                            
-                        case 3:
-                            StyledTextField(placeholder: "New password (min 6 characters)", text: $newPassword, isSecure: true)
-                            StyledTextField(placeholder: "Confirm password", text: $confirmPassword, isSecure: true)
-                            
-                        default:
-                            EmptyView()
-                        }
-                        
-                        if let error = errorMessage {
-                            ErrorBanner(message: error)
-                        }
-                        
-                        if let success = successMessage {
-                            HStack {
-                                Image(systemName: "checkmark.circle")
-                                Text(success)
-                                    .font(.subheadline)
+            ZStack {
+                MeshBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 28) {
+                        // Header
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(Theme.accentGradient)
+                                    .frame(width: 70, height: 70)
+                                    .blur(radius: 20)
+                                    .opacity(0.4)
+                                ZStack {
+                                    Circle()
+                                        .fill(Theme.cardBgElevated)
+                                        .frame(width: 70, height: 70)
+                                    Image(systemName: step == 3 ? "checkmark.shield" : "key.fill")
+                                        .font(.system(size: 26, weight: .medium))
+                                        .foregroundStyle(Theme.accentGradient)
+                                }
+                                .overlay(
+                                    Circle()
+                                        .stroke(
+                                            LinearGradient(colors: [Theme.emerald.opacity(0.4), .clear], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                            lineWidth: 2
+                                        )
+                                )
                             }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.green.opacity(0.2))
-                            .foregroundColor(.green)
-                            .cornerRadius(12)
+
+                            Text(stepTitle)
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text(stepDescription)
+                                .font(.subheadline)
+                                .foregroundColor(Theme.textSecondary)
+                                .multilineTextAlignment(.center)
                         }
-                        
-                        PrimaryButton(stepButtonTitle, isLoading: isLoading) {
-                            handleStep()
+                        .padding(.top, 30)
+
+                        // Step content
+                        GlassCard {
+                            VStack(spacing: 16) {
+                                switch step {
+                                case 1:
+                                    StyledTextField(placeholder: "Email", text: $email, keyboardType: .emailAddress)
+                                case 2:
+                                    StyledTextField(placeholder: "6-digit code", text: $code, keyboardType: .numberPad)
+                                case 3:
+                                    StyledTextField(placeholder: "New password (min 6 characters)", text: $newPassword, isSecure: true)
+                                    StyledTextField(placeholder: "Confirm password", text: $confirmPassword, isSecure: true)
+                                default:
+                                    EmptyView()
+                                }
+
+                                if let error = errorMessage {
+                                    ErrorBanner(message: error)
+                                }
+
+                                if let success = successMessage {
+                                    SuccessBanner(message: success)
+                                }
+
+                                PrimaryButton(stepButtonTitle, isLoading: isLoading) {
+                                    handleStep()
+                                }
+                            }
+                        }
+
+                        // Progress dots
+                        HStack(spacing: 10) {
+                            ForEach(1...3, id: \.self) { i in
+                                Capsule()
+                                    .fill(i <= step ? Theme.emerald : Theme.inputBg)
+                                    .frame(width: i == step ? 24 : 8, height: 8)
+                                    .animation(.easeInOut(duration: 0.3), value: step)
+                            }
                         }
                     }
-                    
-                    // Progress dots
-                    HStack(spacing: 8) {
-                        ForEach(1...3, id: \.self) { i in
-                            Circle()
-                                .fill(i <= step ? Theme.emerald : Theme.inputBg)
-                                .frame(width: 8, height: 8)
-                        }
-                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, 24)
             }
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

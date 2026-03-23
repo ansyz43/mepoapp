@@ -4,7 +4,7 @@ struct ConnectChannelView: View {
     @Environment(\.dismiss) var dismiss
     let platform: String
     let onConnect: () async -> Void
-    
+
     @State private var code = ""
     @State private var assistantName = "Assistant"
     @State private var sellerLink = ""
@@ -12,90 +12,91 @@ struct ConnectChannelView: View {
     @State private var botDescription = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    
+
     private let api = APIClient.shared
-    
+
     var platformName: String {
         platform == "instagram" ? "Instagram" : "Messenger"
     }
-    
+
+    private var platformColor: Color {
+        platform == "instagram" ? Theme.instagram : Theme.messenger
+    }
+
+    private var platformIcon: String {
+        platform == "instagram" ? "camera.fill" : "message.fill"
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Instructions
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: platform == "instagram" ? "camera" : "message")
-                                    .font(.title2)
-                                    .foregroundColor(Theme.emerald)
+            ZStack {
+                MeshBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // Instructions header
+                        GlassCard {
+                            VStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(platformColor.opacity(0.12))
+                                        .frame(width: 52, height: 52)
+                                    Image(systemName: platformIcon)
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundColor(platformColor)
+                                }
+
                                 Text("Connect \(platformName)")
-                                    .font(.headline)
+                                    .font(.system(size: 18, weight: .bold))
                                     .foregroundColor(.white)
+
+                                Text("Enter the authorization code from Meta Business to connect your \(platformName) account.")
+                                    .font(.subheadline)
+                                    .foregroundColor(Theme.textSecondary)
+                                    .multilineTextAlignment(.center)
                             }
-                            
-                            Text("Enter the authorization code from Meta Business to connect your \(platformName) account.")
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
+                        }
+
+                        // Form
+                        GlassCard {
+                            VStack(spacing: 16) {
+                                formField("Authorization Code *", placeholder: "Paste code here", text: $code)
+                                formField("Assistant Name *", placeholder: "My Assistant", text: $assistantName)
+                                formField("Seller Link", placeholder: "https://yourstore.com", text: $sellerLink, keyboard: .URL)
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Greeting Message")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.textSecondary)
+                                    TextEditor(text: $greetingMessage)
+                                        .frame(minHeight: 80)
+                                        .padding(10)
+                                        .background(Theme.inputBg)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                        )
+                                        .foregroundColor(.white)
+                                        .scrollContentBackground(.hidden)
+                                }
+
+                                formField("Description", placeholder: "What does your assistant do?", text: $botDescription)
+
+                                if let error = errorMessage {
+                                    ErrorBanner(message: error)
+                                }
+
+                                PrimaryButton("Connect", isLoading: isLoading) {
+                                    connectChannel()
+                                }
+                            }
                         }
                     }
-                    
-                    // Form
-                    VStack(spacing: 14) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Authorization Code *")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            StyledTextField(placeholder: "Paste code here", text: $code)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Assistant Name *")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            StyledTextField(placeholder: "My Assistant", text: $assistantName, autocapitalization: .words)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Seller Link")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            StyledTextField(placeholder: "https://yourstore.com", text: $sellerLink, keyboardType: .URL)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Greeting Message")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            TextEditor(text: $greetingMessage)
-                                .frame(minHeight: 80)
-                                .padding(8)
-                                .background(Theme.inputBg)
-                                .cornerRadius(12)
-                                .foregroundColor(.white)
-                                .scrollContentBackground(.hidden)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Description")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            StyledTextField(placeholder: "What does your assistant do?", text: $botDescription)
-                        }
-                        
-                        if let error = errorMessage {
-                            ErrorBanner(message: error)
-                        }
-                        
-                        PrimaryButton("Connect", isLoading: isLoading) {
-                            connectChannel()
-                        }
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding()
             }
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -105,7 +106,16 @@ struct ConnectChannelView: View {
             }
         }
     }
-    
+
+    private func formField(_ label: String, placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(Theme.textSecondary)
+            StyledTextField(placeholder: placeholder, text: text, keyboardType: keyboard)
+        }
+    }
+
     private func connectChannel() {
         guard !code.trimmingCharacters(in: .whitespaces).isEmpty else {
             errorMessage = "Authorization code is required"
@@ -115,10 +125,10 @@ struct ConnectChannelView: View {
             errorMessage = "Assistant name is required"
             return
         }
-        
+
         errorMessage = nil
         isLoading = true
-        
+
         let request = ChannelConnectRequest(
             code: code.trimmingCharacters(in: .whitespaces),
             assistantName: assistantName.trimmingCharacters(in: .whitespaces),
@@ -126,7 +136,7 @@ struct ConnectChannelView: View {
             greetingMessage: greetingMessage.isEmpty ? nil : greetingMessage,
             botDescription: botDescription.isEmpty ? nil : botDescription
         )
-        
+
         Task {
             do {
                 if platform == "instagram" {

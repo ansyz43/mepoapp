@@ -6,148 +6,176 @@ struct ProfileView: View {
     @State private var showChangePassword = false
     @State private var showDeleteAccount = false
     @State private var cashback: [CashbackTransactionResponse] = []
-    
+    @State private var copiedLink = false
+
     private let api = APIClient.shared
-    
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Profile card
-                    GlassCard {
-                        VStack(spacing: 12) {
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 64))
-                                .foregroundColor(Theme.emerald)
-                            
-                            Text(auth.profile?.name ?? "User")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            
-                            Text(auth.profile?.email ?? "")
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
-                            
-                            if let joined = auth.profile?.createdAt {
-                                Text("Joined \(joined, style: .date)")
-                                    .font(.caption)
-                                    .foregroundColor(Theme.textSecondary)
-                            }
-                        }
-                    }
-                    
-                    // Stats
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        StatCard(
-                            title: "Cashback",
-                            value: String(format: "$%.2f", auth.profile?.cashbackBalance ?? 0),
-                            icon: "dollarsign.circle"
-                        )
-                        StatCard(
-                            title: "Referrals",
-                            value: "\(auth.profile?.referralsCount ?? 0)",
-                            icon: "person.2"
-                        )
-                    }
-                    
-                    // Referral code
-                    if let refCode = auth.profile?.refCode, let refLink = auth.profile?.refLink {
+            ZStack {
+                MeshBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        // Profile header
                         GlassCard {
-                            VStack(spacing: 10) {
-                                Text("Your Referral Code")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                
-                                Text(refCode)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(Theme.emerald)
-                                
-                                Button {
-                                    UIPasteboard.general.string = refLink
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "doc.on.doc")
-                                        Text("Copy Referral Link")
+                            VStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Theme.accentGradient)
+                                        .frame(width: 76, height: 76)
+                                        .blur(radius: 16)
+                                        .opacity(0.5)
+                                    ZStack {
+                                        Circle()
+                                            .fill(Theme.cardBgElevated)
+                                            .frame(width: 76, height: 76)
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 30, weight: .medium))
+                                            .foregroundStyle(Theme.accentGradient)
                                     }
+                                    .overlay(
+                                        Circle()
+                                            .stroke(
+                                                LinearGradient(colors: [Theme.emerald.opacity(0.5), Theme.emeraldLight.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                                                lineWidth: 2
+                                            )
+                                    )
+                                }
+
+                                Text(auth.profile?.name ?? "User")
+                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+
+                                Text(auth.profile?.email ?? "")
                                     .font(.subheadline)
-                                    .foregroundColor(Theme.emerald)
-                                    .padding(.vertical, 8)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Theme.inputBg)
-                                    .cornerRadius(8)
+                                    .foregroundColor(Theme.textSecondary)
+
+                                if let joined = auth.profile?.createdAt {
+                                    Text("Joined \(joined, style: .date)")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.textTertiary)
                                 }
                             }
                         }
-                    }
-                    
-                    // Actions
-                    GlassCard {
-                        VStack(spacing: 0) {
-                            profileAction(icon: "pencil", title: "Edit Name") {
-                                showEditName = true
-                            }
-                            Divider().background(Theme.inputBg)
-                            profileAction(icon: "lock.rotation", title: "Change Password") {
-                                showChangePassword = true
-                            }
-                            Divider().background(Theme.inputBg)
-                            
-                            NavigationLink(destination: CatalogView()) {
-                                actionRow(icon: "storefront", title: "Catalog")
-                            }
-                            Divider().background(Theme.inputBg)
-                            
-                            NavigationLink(destination: PartnerView()) {
-                                actionRow(icon: "person.2.badge.gearshape", title: "My Partners")
-                            }
-                            
-                            if auth.hasChannel {
-                                Divider().background(Theme.inputBg)
-                                NavigationLink(destination: BroadcastView()) {
-                                    actionRow(icon: "megaphone", title: "Broadcasts")
-                                }
-                            }
-                            
-                            if auth.isAdmin {
-                                Divider().background(Theme.inputBg)
-                                NavigationLink(destination: AdminView()) {
-                                    actionRow(icon: "shield.checkered", title: "Admin Panel")
+
+                        // Stats row
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                            StatCard(
+                                title: "Cashback",
+                                value: String(format: "$%.2f", auth.profile?.cashbackBalance ?? 0),
+                                icon: "dollarsign.circle"
+                            )
+                            StatCard(
+                                title: "Referrals",
+                                value: "\(auth.profile?.referralsCount ?? 0)",
+                                icon: "person.2"
+                            )
+                        }
+
+                        // Referral code
+                        if let refCode = auth.profile?.refCode, let refLink = auth.profile?.refLink {
+                            GlassCard {
+                                VStack(spacing: 12) {
+                                    SectionHeader(title: "Referral Code")
+
+                                    Text(refCode)
+                                        .font(.system(size: 24, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(Theme.accentGradient)
+
+                                    Button {
+                                        UIPasteboard.general.string = refLink
+                                        copiedLink = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedLink = false }
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: copiedLink ? "checkmark" : "doc.on.doc")
+                                                .font(.subheadline)
+                                            Text(copiedLink ? "Copied!" : "Copy Referral Link")
+                                                .fontWeight(.medium)
+                                        }
+                                        .font(.subheadline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 11)
+                                        .background(Theme.emerald.opacity(0.12))
+                                        .foregroundColor(Theme.emerald)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    }
                                 }
                             }
                         }
-                    }
-                    
-                    // Logout + Delete
-                    VStack(spacing: 12) {
+
+                        // Actions
+                        GlassCard {
+                            VStack(spacing: 0) {
+                                profileAction(icon: "pencil", title: "Edit Name", color: .blue) {
+                                    showEditName = true
+                                }
+                                actionDivider
+                                profileAction(icon: "lock.rotation", title: "Change Password", color: .orange) {
+                                    showChangePassword = true
+                                }
+                                actionDivider
+
+                                NavigationLink(destination: CatalogView()) {
+                                    actionRow(icon: "storefront", title: "Catalog", color: .purple)
+                                }
+                                actionDivider
+
+                                NavigationLink(destination: PartnerView()) {
+                                    actionRow(icon: "person.2.badge.gearshape", title: "My Partners", color: Theme.emerald)
+                                }
+
+                                if auth.hasChannel {
+                                    actionDivider
+                                    NavigationLink(destination: BroadcastView()) {
+                                        actionRow(icon: "megaphone", title: "Broadcasts", color: .orange)
+                                    }
+                                }
+
+                                if auth.isAdmin {
+                                    actionDivider
+                                    NavigationLink(destination: AdminView()) {
+                                        actionRow(icon: "shield.checkered", title: "Admin Panel", color: .red)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Logout
                         Button {
                             Task { await auth.logout() }
                         } label: {
-                            HStack {
+                            HStack(spacing: 8) {
                                 Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    .font(.subheadline)
                                 Text("Log Out")
+                                    .fontWeight(.semibold)
                             }
-                            .fontWeight(.medium)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Theme.inputBg)
+                            .background(Theme.cardBgElevated)
                             .foregroundColor(.white)
-                            .cornerRadius(12)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                            )
                         }
-                        
+
                         Button {
                             showDeleteAccount = true
                         } label: {
                             Text("Delete Account")
-                                .font(.subheadline)
-                                .foregroundColor(.red.opacity(0.7))
+                                .font(.caption)
+                                .foregroundColor(.red.opacity(0.5))
                         }
+                        .padding(.bottom, 10)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding()
             }
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationTitle("Profile")
             .sheet(isPresented: $showEditName) {
                 EditNameView()
@@ -165,26 +193,40 @@ struct ProfileView: View {
             }
         }
     }
-    
-    private func profileAction(icon: String, title: String, action: @escaping () -> Void) -> some View {
+
+    private var actionDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.04))
+            .frame(height: 1)
+            .padding(.leading, 44)
+    }
+
+    private func profileAction(icon: String, title: String, color: Color = Theme.emerald, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            actionRow(icon: icon, title: title)
+            actionRow(icon: icon, title: title, color: color)
         }
     }
-    
-    private func actionRow(icon: String, title: String) -> some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(Theme.emerald)
-                .frame(width: 24)
+
+    private func actionRow(icon: String, title: String, color: Color = Theme.emerald) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(color.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(color)
+            }
             Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
                 .foregroundColor(.white)
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(Theme.textSecondary)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(Theme.textTertiary)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
     }
 }
 
@@ -196,26 +238,30 @@ struct EditNameView: View {
     @State private var name: String = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    
+
     private let api = APIClient.shared
-    
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                StyledTextField(placeholder: "Name", text: $name, autocapitalization: .words)
-                
-                if let error = errorMessage {
-                    ErrorBanner(message: error)
+            ZStack {
+                MeshBackground()
+
+                VStack(spacing: 20) {
+                    StyledTextField(placeholder: "Name", text: $name, autocapitalization: .words)
+
+                    if let error = errorMessage {
+                        ErrorBanner(message: error)
+                    }
+
+                    PrimaryButton("Save", isLoading: isLoading) {
+                        saveName()
+                    }
+
+                    Spacer()
                 }
-                
-                PrimaryButton("Save", isLoading: isLoading) {
-                    saveName()
-                }
-                
-                Spacer()
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
             }
-            .padding()
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationTitle("Edit Name")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -259,28 +305,32 @@ struct ChangePasswordView: View {
     @State private var confirmPassword = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    
+
     private let api = APIClient.shared
-    
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                StyledTextField(placeholder: "Current password", text: $currentPassword, isSecure: true)
-                StyledTextField(placeholder: "New password (min 6 characters)", text: $newPassword, isSecure: true)
-                StyledTextField(placeholder: "Confirm new password", text: $confirmPassword, isSecure: true)
-                
-                if let error = errorMessage {
-                    ErrorBanner(message: error)
+            ZStack {
+                MeshBackground()
+
+                VStack(spacing: 16) {
+                    StyledTextField(placeholder: "Current password", text: $currentPassword, isSecure: true)
+                    StyledTextField(placeholder: "New password (min 6)", text: $newPassword, isSecure: true)
+                    StyledTextField(placeholder: "Confirm new password", text: $confirmPassword, isSecure: true)
+
+                    if let error = errorMessage {
+                        ErrorBanner(message: error)
+                    }
+
+                    PrimaryButton("Change Password", isLoading: isLoading) {
+                        changePassword()
+                    }
+
+                    Spacer()
                 }
-                
-                PrimaryButton("Change Password", isLoading: isLoading) {
-                    changePassword()
-                }
-                
-                Spacer()
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
             }
-            .padding()
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationTitle("Change Password")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

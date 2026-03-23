@@ -10,78 +10,89 @@ struct LoginView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    Spacer().frame(height: 60)
-                    
-                    // Logo
-                    VStack(spacing: 8) {
-                        Image(systemName: "bubble.left.and.bubble.right.fill")
-                            .font(.system(size: 56))
-                            .foregroundColor(Theme.emerald)
-                        Text("Meepo")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        Text("AI Channel Assistant")
+            ZStack {
+                MeshBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 32) {
+                        Spacer().frame(height: 50)
+
+                        // Logo
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(Theme.emerald.opacity(0.1))
+                                    .frame(width: 96, height: 96)
+                                    .blur(radius: 8)
+                                Image(systemName: "bubble.left.and.bubble.right.fill")
+                                    .font(.system(size: 44, weight: .medium))
+                                    .foregroundStyle(Theme.accentGradient)
+                            }
+                            Text("Meepo")
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                            Text("AI Channel Assistant")
+                                .font(.subheadline)
+                                .foregroundColor(Theme.textTertiary)
+                        }
+
+                        // Form
+                        VStack(spacing: 14) {
+                            StyledTextField(placeholder: "Email", text: $email, keyboardType: .emailAddress)
+                            StyledTextField(placeholder: "Password", text: $password, isSecure: true)
+
+                            if let error = auth.errorMessage {
+                                ErrorBanner(message: error)
+                            }
+
+                            PrimaryButton("Sign In", isLoading: auth.isLoading) {
+                                Task { await auth.login(email: email, password: password) }
+                            }
+                            .padding(.top, 4)
+
+                            Button("Forgot password?") {
+                                showResetPassword = true
+                            }
                             .font(.subheadline)
-                            .foregroundColor(Theme.textSecondary)
-                    }
-                    
-                    Spacer().frame(height: 20)
-                    
-                    // Form
-                    VStack(spacing: 16) {
-                        StyledTextField(placeholder: "Email", text: $email, keyboardType: .emailAddress)
-                        StyledTextField(placeholder: "Password", text: $password, isSecure: true)
-                        
-                        if let error = auth.errorMessage {
-                            ErrorBanner(message: error)
+                            .foregroundColor(Theme.emerald)
                         }
-                        
-                        PrimaryButton("Sign In", isLoading: auth.isLoading) {
-                            Task { await auth.login(email: email, password: password) }
+
+                        // Divider
+                        HStack(spacing: 12) {
+                            Rectangle().frame(height: 0.5).foregroundColor(Color.white.opacity(0.08))
+                            Text("or")
+                                .foregroundColor(Theme.textTertiary)
+                                .font(.caption)
+                            Rectangle().frame(height: 0.5).foregroundColor(Color.white.opacity(0.08))
                         }
-                        
-                        Button("Forgot password?") {
-                            showResetPassword = true
+
+                        // Apple Sign In
+                        SignInWithAppleButton(.signIn) { request in
+                            request.requestedScopes = [.fullName, .email]
+                        } onCompletion: { result in
+                            handleAppleSignIn(result)
+                        }
+                        .signInWithAppleButtonStyle(.white)
+                        .frame(height: 52)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                        // Register link
+                        HStack(spacing: 4) {
+                            Text("Don't have an account?")
+                                .foregroundColor(Theme.textTertiary)
+                            Button("Sign Up") {
+                                showRegister = true
+                            }
+                            .foregroundColor(Theme.emerald)
+                            .fontWeight(.semibold)
                         }
                         .font(.subheadline)
-                        .foregroundColor(Theme.emerald)
+
+                        Spacer().frame(height: 20)
                     }
-                    
-                    // Divider
-                    HStack {
-                        Rectangle().frame(height: 1).foregroundColor(Theme.inputBg)
-                        Text("or").foregroundColor(Theme.textSecondary).font(.caption)
-                        Rectangle().frame(height: 1).foregroundColor(Theme.inputBg)
-                    }
-                    
-                    // Apple Sign In
-                    SignInWithAppleButton(.signIn) { request in
-                        request.requestedScopes = [.fullName, .email]
-                    } onCompletion: { result in
-                        handleAppleSignIn(result)
-                    }
-                    .signInWithAppleButtonStyle(.white)
-                    .frame(height: 50)
-                    .cornerRadius(12)
-                    
-                    // Register link
-                    HStack {
-                        Text("Don't have an account?")
-                            .foregroundColor(Theme.textSecondary)
-                        Button("Sign Up") {
-                            showRegister = true
-                        }
-                        .foregroundColor(Theme.emerald)
-                        .fontWeight(.semibold)
-                    }
-                    .font(.subheadline)
+                    .padding(.horizontal, 28)
                 }
-                .padding(.horizontal, 24)
             }
-            .background(Theme.darkBg.ignoresSafeArea())
             .sheet(isPresented: $showRegister) {
                 RegisterView()
             }

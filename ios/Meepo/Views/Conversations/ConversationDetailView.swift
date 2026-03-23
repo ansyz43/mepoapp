@@ -2,101 +2,111 @@ import SwiftUI
 
 struct ConversationDetailView: View {
     let contactId: Int
-    
+
     @State private var detail: ConversationDetailResponse?
     @State private var isLoading = true
-    
+
     private let api = APIClient.shared
-    
+
     var body: some View {
-        VStack(spacing: 0) {
-            if isLoading {
-                Spacer()
-                ProgressView().tint(Theme.emerald)
-                Spacer()
-            } else if let detail = detail {
-                // Contact header
-                HStack(spacing: 12) {
-                    AvatarView(url: detail.contact.profilePicUrl, size: 36)
-                    VStack(alignment: .leading) {
-                        Text(detail.contact.displayName)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
-                        if let username = detail.contact.channelUsername {
-                            Text("@\(username)")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                        }
-                    }
+        ZStack {
+            MeshBackground()
+
+            VStack(spacing: 0) {
+                if isLoading {
                     Spacer()
-                    PlatformBadge(platform: detail.contact.platform)
-                }
-                .padding()
-                .background(.ultraThinMaterial)
-                
-                // Messages
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 8) {
-                            ForEach(detail.messages) { message in
-                                messageBubble(message)
-                                    .id(message.id)
+                    ProgressView().tint(Theme.emerald)
+                    Spacer()
+                } else if let detail = detail {
+                    // Contact header
+                    HStack(spacing: 12) {
+                        AvatarView(url: detail.contact.profilePicUrl, size: 38)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(detail.contact.displayName)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            if let username = detail.contact.channelUsername {
+                                Text("@\(username)")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textTertiary)
                             }
                         }
-                        .padding()
+                        Spacer()
+                        PlatformBadge(platform: detail.contact.platform)
                     }
-                    .onAppear {
-                        if let lastId = detail.messages.last?.id {
-                            proxy.scrollTo(lastId, anchor: .bottom)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Theme.cardBg.opacity(0.8))
+
+                    // Messages
+                    ScrollViewReader { proxy in
+                        ScrollView(showsIndicators: false) {
+                            LazyVStack(spacing: 6) {
+                                ForEach(detail.messages) { message in
+                                    messageBubble(message)
+                                        .id(message.id)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                        }
+                        .onAppear {
+                            if let lastId = detail.messages.last?.id {
+                                proxy.scrollTo(lastId, anchor: .bottom)
+                            }
                         }
                     }
+
+                    // Info bar
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.caption)
+                            .foregroundColor(Theme.emerald)
+                        Text("Messages are handled by AI assistant")
+                            .font(.caption)
+                            .foregroundColor(Theme.textTertiary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity)
+                    .background(Theme.cardBg.opacity(0.8))
                 }
-                
-                // Info bar
-                HStack {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(Theme.textSecondary)
-                    Text("Messages are handled by AI assistant")
-                        .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
-                }
-                .padding()
-                .background(.ultraThinMaterial)
             }
         }
-        .background(Theme.darkBg.ignoresSafeArea())
         .navigationTitle("Conversation")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadConversation() }
     }
-    
+
     private func messageBubble(_ message: MessageResponse) -> some View {
         HStack {
-            if message.isUser {
-                Spacer(minLength: 60)
-            }
-            
+            if message.isUser { Spacer(minLength: 50) }
+
             VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
                 Text(message.content)
                     .font(.subheadline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(message.isUser ? Color.blue.opacity(0.3) : Theme.cardBg)
-                    .cornerRadius(16)
-                
+                    .background(
+                        message.isUser
+                            ? AnyShapeStyle(Theme.accentGradient)
+                            : AnyShapeStyle(Theme.cardBgElevated)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+
                 Text(message.createdAt, style: .time)
-                    .font(.caption2)
-                    .foregroundColor(Theme.textSecondary)
+                    .font(.system(size: 10))
+                    .foregroundColor(Theme.textTertiary)
+                    .padding(.horizontal, 4)
             }
-            
-            if !message.isUser {
-                Spacer(minLength: 60)
-            }
+
+            if !message.isUser { Spacer(minLength: 50) }
         }
     }
-    
+
     private func loadConversation() async {
         isLoading = true
         do {

@@ -5,7 +5,7 @@ struct ChannelSettingsView: View {
     @Environment(\.dismiss) var dismiss
     let channel: ChannelResponse
     let onSave: () async -> Void
-    
+
     @State private var assistantName: String
     @State private var sellerLink: String
     @State private var greetingMessage: String
@@ -15,9 +15,13 @@ struct ChannelSettingsView: View {
     @State private var errorMessage: String?
     @State private var showDeleteConfirm = false
     @State private var selectedPhoto: PhotosPickerItem?
-    
+
     private let api = APIClient.shared
-    
+
+    private var platformColor: Color {
+        channel.platform == "instagram" ? Theme.instagram : Theme.messenger
+    }
+
     init(channel: ChannelResponse, onSave: @escaping () async -> Void) {
         self.channel = channel
         self.onSave = onSave
@@ -27,103 +31,116 @@ struct ChannelSettingsView: View {
         _botDescription = State(initialValue: channel.botDescription ?? "")
         _allowPartners = State(initialValue: channel.allowPartners)
     }
-    
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Avatar
-                    VStack(spacing: 12) {
-                        AvatarView(url: channel.avatarUrl, size: 80)
-                        
-                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                            Text("Change Avatar")
+            ZStack {
+                MeshBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // Avatar
+                        VStack(spacing: 12) {
+                            AvatarView(url: channel.avatarUrl, size: 80)
+
+                            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "camera.fill")
+                                        .font(.caption)
+                                    Text("Change Avatar")
+                                        .fontWeight(.medium)
+                                }
                                 .font(.subheadline)
-                                .foregroundColor(Theme.emerald)
+                                .foregroundColor(platformColor)
+                            }
+                            .onChange(of: selectedPhoto) { _, newItem in
+                                Task {
+                                    if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                                        await uploadAvatar(data)
+                                    }
+                                }
+                            }
                         }
-                        .onChange(of: selectedPhoto) { _, newItem in
-                            Task {
-                                if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                    await uploadAvatar(data)
+
+                        // Settings form
+                        GlassCard {
+                            VStack(spacing: 16) {
+                                formField("Assistant Name", placeholder: "Assistant", text: $assistantName)
+                                formField("Seller Link", placeholder: "https://yourstore.com", text: $sellerLink, keyboard: .URL)
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Greeting Message")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.textSecondary)
+                                    TextEditor(text: $greetingMessage)
+                                        .frame(minHeight: 80)
+                                        .padding(10)
+                                        .background(Theme.inputBg)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                                        )
+                                        .foregroundColor(.white)
+                                        .scrollContentBackground(.hidden)
+                                }
+
+                                formField("Description", placeholder: "Description", text: $botDescription)
+
+                                Toggle(isOn: $allowPartners) {
+                                    Text("Allow Partners")
+                                        .font(.subheadline)
+                                        .foregroundColor(.white)
+                                }
+                                .tint(Theme.emerald)
+                                .padding(.vertical, 4)
+
+                                if let error = errorMessage {
+                                    ErrorBanner(message: error)
+                                }
+
+                                PrimaryButton("Save Changes", isLoading: isLoading) {
+                                    saveSettings()
+                                }
+                            }
+                        }
+
+                        // Danger Zone
+                        GlassCard {
+                            VStack(spacing: 12) {
+                                HStack {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.red.opacity(0.7))
+                                    Text("Danger Zone")
+                                        .font(.subheadline)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.red.opacity(0.8))
+                                    Spacer()
+                                }
+
+                                Button {
+                                    showDeleteConfirm = true
+                                } label: {
+                                    Text("Delete Channel")
+                                        .fontWeight(.medium)
+                                        .font(.subheadline)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(Color.red.opacity(0.12))
+                                        .foregroundColor(.red)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .stroke(Color.red.opacity(0.2), lineWidth: 1)
+                                        )
                                 }
                             }
                         }
                     }
-                    
-                    // Settings form
-                    VStack(spacing: 14) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Assistant Name")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            StyledTextField(placeholder: "Assistant", text: $assistantName, autocapitalization: .words)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Seller Link")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            StyledTextField(placeholder: "https://yourstore.com", text: $sellerLink, keyboardType: .URL)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Greeting Message")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            TextEditor(text: $greetingMessage)
-                                .frame(minHeight: 80)
-                                .padding(8)
-                                .background(Theme.inputBg)
-                                .cornerRadius(12)
-                                .foregroundColor(.white)
-                                .scrollContentBackground(.hidden)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Description")
-                                .font(.caption)
-                                .foregroundColor(Theme.textSecondary)
-                            StyledTextField(placeholder: "Description", text: $botDescription)
-                        }
-                        
-                        Toggle("Allow Partners", isOn: $allowPartners)
-                            .tint(Theme.emerald)
-                            .foregroundColor(.white)
-                            .padding(.vertical, 4)
-                        
-                        if let error = errorMessage {
-                            ErrorBanner(message: error)
-                        }
-                        
-                        PrimaryButton("Save", isLoading: isLoading) {
-                            saveSettings()
-                        }
-                    }
-                    
-                    // Danger Zone
-                    GlassCard {
-                        VStack(spacing: 12) {
-                            Text("Danger Zone")
-                                .font(.headline)
-                                .foregroundColor(.red)
-                            
-                            Button {
-                                showDeleteConfirm = true
-                            } label: {
-                                Text("Delete Channel")
-                                    .fontWeight(.medium)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(Color.red.opacity(0.2))
-                                    .foregroundColor(.red)
-                                    .cornerRadius(10)
-                            }
-                        }
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding()
             }
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationTitle("\(channel.platformDisplayName) Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -140,11 +157,20 @@ struct ChannelSettingsView: View {
             }
         }
     }
-    
+
+    private func formField(_ label: String, placeholder: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(Theme.textSecondary)
+            StyledTextField(placeholder: placeholder, text: text, keyboardType: keyboard)
+        }
+    }
+
     private func saveSettings() {
         isLoading = true
         errorMessage = nil
-        
+
         let req = ChannelUpdateRequest(
             assistantName: assistantName.trimmingCharacters(in: .whitespaces),
             sellerLink: sellerLink.isEmpty ? nil : sellerLink,
@@ -152,7 +178,7 @@ struct ChannelSettingsView: View {
             botDescription: botDescription.isEmpty ? nil : botDescription,
             allowPartners: allowPartners
         )
-        
+
         Task {
             do {
                 let _ = try await api.updateChannel(platform: channel.platform, req)
@@ -164,13 +190,13 @@ struct ChannelSettingsView: View {
             isLoading = false
         }
     }
-    
+
     private func uploadAvatar(_ data: Data) async {
         do {
             let _ = try await api.uploadAvatar(channelId: channel.id, imageData: data)
         } catch { }
     }
-    
+
     private func deleteChannel() {
         Task {
             do {

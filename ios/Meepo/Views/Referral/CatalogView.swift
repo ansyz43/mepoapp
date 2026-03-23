@@ -4,39 +4,37 @@ struct CatalogView: View {
     @State private var channels: [ChannelCatalogItem] = []
     @State private var isLoading = true
     @State private var showPartnerForm: ChannelCatalogItem?
-    
+
     private let api = APIClient.shared
-    
+
     var body: some View {
         NavigationStack {
-            VStack {
+            ZStack {
+                MeshBackground()
+
                 if isLoading {
-                    Spacer()
                     ProgressView().tint(Theme.emerald)
-                    Spacer()
                 } else if channels.isEmpty {
-                    Spacer()
                     EmptyStateView(
                         icon: "storefront",
                         title: "No Channels Available",
                         message: "Channels allowing partners will appear here"
                     )
-                    Spacer()
                 } else {
-                    ScrollView {
+                    ScrollView(showsIndicators: false) {
                         LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
+                            GridItem(.flexible(), spacing: 12),
+                            GridItem(.flexible(), spacing: 12)
                         ], spacing: 12) {
                             ForEach(channels) { channel in
                                 catalogCard(channel)
                             }
                         }
-                        .padding()
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
                     }
                 }
             }
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationTitle("Catalog")
             .refreshable { await loadCatalog() }
             .task { await loadCatalog() }
@@ -47,30 +45,42 @@ struct CatalogView: View {
             }
         }
     }
-    
+
     private func catalogCard(_ channel: ChannelCatalogItem) -> some View {
         Button {
             showPartnerForm = channel
         } label: {
-            GlassCard {
-                VStack(spacing: 10) {
-                    AvatarView(url: channel.avatarUrl, size: 56, fallbackIcon: "antenna.radiowaves.left.and.right")
-                    
-                    Text(channel.channelName ?? channel.assistantName)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                    
-                    Text("Become Partner")
-                        .font(.caption)
-                        .foregroundColor(Theme.emerald)
-                }
+            VStack(spacing: 12) {
+                AvatarView(url: channel.avatarUrl, size: 56, fallbackIcon: "antenna.radiowaves.left.and.right")
+
+                Text(channel.channelName ?? channel.assistantName)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+
+                Text("Become Partner")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(Theme.emerald)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+            .padding(.horizontal, 12)
+            .background(Theme.cardBg)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        LinearGradient(colors: [Color.white.opacity(0.06), Color.white.opacity(0.02)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(color: .black.opacity(0.2), radius: 6, y: 3)
         }
     }
-    
+
     private func loadCatalog() async {
         isLoading = channels.isEmpty
         do {
@@ -86,45 +96,53 @@ struct BecomePartnerView: View {
     @Environment(\.dismiss) var dismiss
     let channel: ChannelCatalogItem
     let onDone: () async -> Void
-    
+
     @State private var sellerLink = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
-    
+
     private let api = APIClient.shared
-    
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Channel info
-                    GlassCard {
-                        VStack(spacing: 12) {
-                            AvatarView(url: channel.avatarUrl, size: 64, fallbackIcon: "antenna.radiowaves.left.and.right")
-                            Text(channel.channelName ?? channel.assistantName)
-                                .font(.headline)
-                                .foregroundColor(.white)
+            ZStack {
+                MeshBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        // Channel info
+                        GlassCard {
+                            VStack(spacing: 14) {
+                                AvatarView(url: channel.avatarUrl, size: 64, fallbackIcon: "antenna.radiowaves.left.and.right")
+                                Text(channel.channelName ?? channel.assistantName)
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+
+                        GlassCard {
+                            VStack(spacing: 16) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Your Seller Link *")
+                                        .font(.caption)
+                                        .foregroundColor(Theme.textSecondary)
+                                    StyledTextField(placeholder: "https://yourstore.com", text: $sellerLink, keyboardType: .URL)
+                                }
+
+                                if let error = errorMessage {
+                                    ErrorBanner(message: error)
+                                }
+
+                                PrimaryButton("Become Partner", isLoading: isLoading) {
+                                    submitPartner()
+                                }
+                            }
                         }
                     }
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Your Seller Link *")
-                            .font(.caption)
-                            .foregroundColor(Theme.textSecondary)
-                        StyledTextField(placeholder: "https://yourstore.com", text: $sellerLink, keyboardType: .URL)
-                    }
-                    
-                    if let error = errorMessage {
-                        ErrorBanner(message: error)
-                    }
-                    
-                    PrimaryButton("Become Partner", isLoading: isLoading) {
-                        submitPartner()
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 20)
                 }
-                .padding()
             }
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationTitle("Partner Application")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -135,16 +153,16 @@ struct BecomePartnerView: View {
             }
         }
     }
-    
+
     private func submitPartner() {
         guard !sellerLink.trimmingCharacters(in: .whitespaces).isEmpty else {
             errorMessage = "Seller link is required"
             return
         }
-        
+
         errorMessage = nil
         isLoading = true
-        
+
         Task {
             do {
                 let _ = try await api.becomePartner(ReferralPartnerCreate(

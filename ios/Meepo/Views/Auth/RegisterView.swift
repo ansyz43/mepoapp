@@ -13,67 +13,78 @@ struct RegisterView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "person.badge.plus")
-                            .font(.system(size: 48))
-                            .foregroundColor(Theme.emerald)
-                        Text("Create Account")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                    }
-                    .padding(.top, 20)
-                    
-                    VStack(spacing: 14) {
-                        StyledTextField(placeholder: "Name", text: $name, autocapitalization: .words)
-                        StyledTextField(placeholder: "Email", text: $email, keyboardType: .emailAddress)
-                        StyledTextField(placeholder: "Password (min 6 characters)", text: $password, isSecure: true)
-                        StyledTextField(placeholder: "Confirm password", text: $confirmPassword, isSecure: true)
-                        StyledTextField(placeholder: "Referral code (optional)", text: $refCode)
-                        
-                        if let error = localError ?? auth.errorMessage {
-                            ErrorBanner(message: error)
+            ZStack {
+                MeshBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(Theme.emerald.opacity(0.1))
+                                    .frame(width: 80, height: 80)
+                                    .blur(radius: 6)
+                                Image(systemName: "person.badge.plus")
+                                    .font(.system(size: 36, weight: .medium))
+                                    .foregroundStyle(Theme.accentGradient)
+                            }
+                            Text("Create Account")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
                         }
-                        
-                        PrimaryButton("Sign Up", isLoading: auth.isLoading) {
-                            register()
+                        .padding(.top, 20)
+
+                        VStack(spacing: 14) {
+                            StyledTextField(placeholder: "Name", text: $name, autocapitalization: .words)
+                            StyledTextField(placeholder: "Email", text: $email, keyboardType: .emailAddress)
+                            StyledTextField(placeholder: "Password (min 6 characters)", text: $password, isSecure: true)
+                            StyledTextField(placeholder: "Confirm password", text: $confirmPassword, isSecure: true)
+                            StyledTextField(placeholder: "Referral code (optional)", text: $refCode)
+
+                            if let error = localError ?? auth.errorMessage {
+                                ErrorBanner(message: error)
+                            }
+
+                            PrimaryButton("Sign Up", isLoading: auth.isLoading) {
+                                register()
+                            }
+                            .padding(.top, 4)
                         }
+
+                        HStack(spacing: 12) {
+                            Rectangle().frame(height: 0.5).foregroundColor(Color.white.opacity(0.08))
+                            Text("or")
+                                .foregroundColor(Theme.textTertiary)
+                                .font(.caption)
+                            Rectangle().frame(height: 0.5).foregroundColor(Color.white.opacity(0.08))
+                        }
+
+                        SignInWithAppleButton(.signUp) { request in
+                            request.requestedScopes = [.fullName, .email]
+                        } onCompletion: { result in
+                            handleAppleSignIn(result)
+                        }
+                        .signInWithAppleButtonStyle(.white)
+                        .frame(height: 52)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                        HStack(spacing: 4) {
+                            Text("Already have an account?")
+                                .foregroundColor(Theme.textTertiary)
+                            Button("Sign In") { dismiss() }
+                                .foregroundColor(Theme.emerald)
+                                .fontWeight(.semibold)
+                        }
+                        .font(.subheadline)
                     }
-                    
-                    HStack {
-                        Rectangle().frame(height: 1).foregroundColor(Theme.inputBg)
-                        Text("or").foregroundColor(Theme.textSecondary).font(.caption)
-                        Rectangle().frame(height: 1).foregroundColor(Theme.inputBg)
-                    }
-                    
-                    SignInWithAppleButton(.signUp) { request in
-                        request.requestedScopes = [.fullName, .email]
-                    } onCompletion: { result in
-                        handleAppleSignIn(result)
-                    }
-                    .signInWithAppleButtonStyle(.white)
-                    .frame(height: 50)
-                    .cornerRadius(12)
-                    
-                    HStack {
-                        Text("Already have an account?")
-                            .foregroundColor(Theme.textSecondary)
-                        Button("Sign In") { dismiss() }
-                            .foregroundColor(Theme.emerald)
-                            .fontWeight(.semibold)
-                    }
-                    .font(.subheadline)
+                    .padding(.horizontal, 28)
                 }
-                .padding(.horizontal, 24)
             }
-            .background(Theme.darkBg.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundColor(Theme.textSecondary)
+                        .foregroundColor(Theme.textTertiary)
                 }
             }
         }
