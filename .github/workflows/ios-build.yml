@@ -22,6 +22,11 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: List available schemes
+        run: |
+          cd ios
+          xcodebuild -list -project Meepo.xcodeproj
+
       - name: Build iOS App
         run: |
           cd ios
@@ -29,13 +34,13 @@ jobs:
             -project Meepo.xcodeproj \
             -scheme Meepo \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.2' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             ONLY_ACTIVE_ARCH=YES \
-            | tail -50
+            | tail -100
 
       - name: Export .app bundle
         run: |
