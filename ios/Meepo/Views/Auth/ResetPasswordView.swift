@@ -25,10 +25,8 @@ struct ResetPasswordView: View {
                         VStack(spacing: 12) {
                             ZStack {
                                 Circle()
-                                    .fill(Theme.accentGradient)
-                                    .frame(width: 70, height: 70)
-                                    .blur(radius: 20)
-                                    .opacity(0.4)
+                                    .fill(Theme.emerald.opacity(0.2))
+                                    .frame(width: 82, height: 82)
                                 ZStack {
                                     Circle()
                                         .fill(Theme.cardBgElevated)

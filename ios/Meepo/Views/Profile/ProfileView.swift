@@ -22,10 +22,8 @@ struct ProfileView: View {
                             VStack(spacing: 14) {
                                 ZStack {
                                     Circle()
-                                        .fill(Theme.accentGradient)
-                                        .frame(width: 76, height: 76)
-                                        .blur(radius: 16)
-                                        .opacity(0.5)
+                                        .fill(Theme.emerald.opacity(0.3))
+                                        .frame(width: 88, height: 88)
                                     ZStack {
                                         Circle()
                                             .fill(Theme.cardBgElevated)

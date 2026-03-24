@@ -21,9 +21,8 @@ struct LoginView: View {
                         VStack(spacing: 12) {
                             ZStack {
                                 Circle()
-                                    .fill(Theme.emerald.opacity(0.1))
+                                    .fill(Theme.emerald.opacity(0.15))
                                     .frame(width: 96, height: 96)
-                                    .blur(radius: 8)
                                 Image(systemName: "bubble.left.and.bubble.right.fill")
                                     .font(.system(size: 44, weight: .medium))
                                     .foregroundStyle(Theme.accentGradient)

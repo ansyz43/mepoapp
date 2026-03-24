@@ -22,7 +22,7 @@ actor APIClient {
     static let shared = APIClient()
     
     #if DEBUG
-    let baseURL = "http://localhost:8000"
+    let baseURL = "http://localhost:8002"
     #else
     let baseURL = "https://meepo.su"
     #endif

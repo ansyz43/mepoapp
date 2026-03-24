@@ -395,14 +395,14 @@ struct MeshBackground: View {
             Theme.darkBg.ignoresSafeArea()
             // Subtle gradient orbs
             Circle()
-                .fill(Theme.emerald.opacity(0.04))
+                .fill(Theme.emerald.opacity(0.08))
                 .frame(width: 300, height: 300)
-                .blur(radius: 80)
+                .blur(radius: 40)
                 .offset(x: -100, y: -200)
             Circle()
-                .fill(Color.blue.opacity(0.03))
+                .fill(Color.blue.opacity(0.06))
                 .frame(width: 250, height: 250)
-                .blur(radius: 60)
+                .blur(radius: 30)
                 .offset(x: 150, y: 100)
         }
         .ignoresSafeArea()

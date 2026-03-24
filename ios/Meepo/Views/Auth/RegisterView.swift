@@ -21,9 +21,8 @@ struct RegisterView: View {
                         VStack(spacing: 12) {
                             ZStack {
                                 Circle()
-                                    .fill(Theme.emerald.opacity(0.1))
+                                    .fill(Theme.emerald.opacity(0.15))
                                     .frame(width: 80, height: 80)
-                                    .blur(radius: 6)
                                 Image(systemName: "person.badge.plus")
                                     .font(.system(size: 36, weight: .medium))
                                     .foregroundStyle(Theme.accentGradient)
