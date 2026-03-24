@@ -21,22 +21,20 @@ jobs:
           echo "=== Available Xcode versions ==="
           ls /Applications/ | grep Xcode || true
           echo ""
-          echo "=== Current Xcode ==="
+          echo "=== Current default Xcode ==="
           xcode-select -p
           echo ""
-          XCODE_PATH=""
-          for ver in 16.2 16.1 16.0 15.4 15.3 15.2; do
-            if [ -d "/Applications/Xcode_${ver}.app" ]; then
-              XCODE_PATH="/Applications/Xcode_${ver}.app/Contents/Developer"
-              break
+          echo "=== Available simulator runtimes ==="
+          xcrun simctl list runtimes || true
+          echo ""
+          # Use default Xcode (matches pre-installed simulator runtimes)
+          # Only override if default is missing
+          if ! xcodebuild -version &>/dev/null; then
+            XCODE_PATH=$(ls -dt /Applications/Xcode*.app/Contents/Developer 2>/dev/null | head -1)
+            if [ -n "$XCODE_PATH" ]; then
+              echo "Selecting fallback: $XCODE_PATH"
+              sudo xcode-select -s "$XCODE_PATH"
             fi
-          done
-          if [ -z "$XCODE_PATH" ]; then
-            XCODE_PATH=$(ls -d /Applications/Xcode*.app/Contents/Developer 2>/dev/null | head -1)
-          fi
-          if [ -n "$XCODE_PATH" ]; then
-            echo "Selecting: $XCODE_PATH"
-            sudo xcode-select -s "$XCODE_PATH"
           fi
           echo ""
           echo "=== Xcode version ==="
@@ -62,11 +60,32 @@ jobs:
         shell: bash {0}
         run: |
           cd ios
+          
+          # Find an available iOS simulator
+          DESTINATION="generic/platform=iOS Simulator"
+          SIM_ID=$(xcrun simctl list devices available -j | python3 -c "
+          import json,sys
+          data=json.load(sys.stdin)
+          for runtime,devs in data.get('devices',{}).items():
+            if 'iOS' in runtime:
+              for d in devs:
+                if d.get('isAvailable') and 'iPhone' in d.get('name',''):
+                  print(d['udid']); sys.exit(0)
+          " 2>/dev/null || true)
+          
+          if [ -n "$SIM_ID" ]; then
+            echo "Using simulator: $SIM_ID"
+            DESTINATION="platform=iOS Simulator,id=${SIM_ID}"
+          else
+            echo "No specific simulator found, using generic destination"
+          fi
+          echo "Destination: $DESTINATION"
+          
           xcodebuild build \
             -project Meepo.xcodeproj \
             -scheme Meepo \
             -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination "$DESTINATION" \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
