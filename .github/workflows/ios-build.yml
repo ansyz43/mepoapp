@@ -59,6 +59,7 @@ jobs:
           xcodebuild -list -project Meepo.xcodeproj
 
       - name: Build
+        shell: bash {0}
         run: |
           cd ios
           xcodebuild build \
@@ -70,7 +71,26 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            ONLY_ACTIVE_ARCH=NO
+            ONLY_ACTIVE_ARCH=NO \
+            2>&1 | tee "${GITHUB_WORKSPACE}/build.log"
+          BUILD_EXIT=${PIPESTATUS[0]}
+          echo ""
+          echo "========== BUILD ERRORS =========="
+          grep -E "(error:|: error )" "${GITHUB_WORKSPACE}/build.log" | head -50 || echo "No error lines found in log"
+          echo "=================================="
+          echo ""
+          echo "========== WARNINGS =========="
+          grep -c "warning:" "${GITHUB_WORKSPACE}/build.log" || echo "0 warnings"
+          echo "=================================="
+          exit $BUILD_EXIT
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
 
       - name: Package app
         run: |
