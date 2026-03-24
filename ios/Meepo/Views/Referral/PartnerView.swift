@@ -248,7 +248,7 @@ struct PartnerDetailView: View {
 
     private func loadSessions() async {
         do {
-            sessions = try await api.getPartnerSessions(partnerId: partner.id)
+            sessions = try await api.getPartnerSessions()
         } catch { }
     }
 
